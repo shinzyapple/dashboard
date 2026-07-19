@@ -65,7 +65,7 @@ switch ($action) {
  */
 function getWeather() {
     $apiKey = getConfigValue('OPENWEATHERMAP_API_KEY');
-    if (USE_MOCK || empty($apiKey) || $apiKey === 'bf5abb6cf9cd13aa50939c6b44e53fd5') {
+    if (USE_MOCK || empty($apiKey)) {
         echo json_encode(getMockWeather());
         exit;
     }
