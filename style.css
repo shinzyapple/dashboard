@@ -1,0 +1,1171 @@
+/* ==========================================================================
+   CSSカスタムプロパティ & @property 定義 (グラデーションの滑らかなアニメーション用)
+   ========================================================================== */
+@property --grad-color-1 {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: #0f172a;
+}
+@property --grad-color-2 {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: #1e1b4b;
+}
+
+:root {
+    --transition-speed: 0.3s;
+    --border-radius-lg: 24px;
+    --border-radius-md: 16px;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-active: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    
+    /* カラーパレット */
+    --color-temp-max: #ff4d4d;
+    --color-temp-min: #4da6ff;
+    --color-pop: #d8b4fe; /* 降水確率の淡い紫 */
+    --color-accent: #38bdf8;
+    
+    /* 朝・昼・夕・夜のグラデーションカラー */
+    /* 晴れの昼 */
+    --sunny-day-1: #0f4c81;
+    --sunny-day-2: #e07a5f;
+    /* 曇り/雨の昼 */
+    --cloudy-day-1: #2b3a4a;
+    --cloudy-day-2: #4a5c6d;
+    /* 朝焼け */
+    --morning-1: #1f1c2c;
+    --morning-2: #928dab;
+    /* 夕焼け */
+    --evening-1: #2c3e50;
+    --evening-2: #fd746c;
+    /* 夜 */
+    --night-1: #090a0f;
+    --night-2: #1c1d2e;
+}
+
+/* ==========================================================================
+   リセット & 基本設定
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+    color: var(--text-primary);
+    background-color: #000;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--grad-color-1), var(--grad-color-2));
+    transition: --grad-color-1 3s ease, --grad-color-2 3s ease;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   背景グラデーションクラスの定義 (JSから切り替え)
+   ========================================================================== */
+.bg-grad-day-sunny {
+    --grad-color-1: var(--sunny-day-1);
+    --grad-color-2: var(--sunny-day-2);
+}
+
+.bg-grad-day-cloudy {
+    --grad-color-1: var(--cloudy-day-1);
+    --grad-color-2: var(--cloudy-day-2);
+}
+
+.bg-grad-morning {
+    --grad-color-1: var(--morning-1);
+    --grad-color-2: var(--morning-2);
+}
+
+.bg-grad-evening {
+    --grad-color-1: var(--evening-1);
+    --grad-color-2: var(--evening-2);
+}
+
+.bg-grad-night {
+    --grad-color-1: var(--night-1);
+    --grad-color-2: var(--night-2);
+}
+
+/* ==========================================================================
+   共通ガラスモルフィズムデザイン
+   ========================================================================== */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.25);
+    transition: transform var(--transition-speed), background var(--transition-speed);
+}
+
+/* 画面の基本レイアウト */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 24px;
+}
+
+.screen.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ==========================================================================
+   1. 待機画面のレイアウト (Standby Screen)
+   ========================================================================== */
+#tap-trigger {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    z-index: 2; /* 最前面に配置してタップを検知 */
+    cursor: pointer;
+}
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    z-index: 1; /* タップトリガーの下 */
+}
+
+.panel-left {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 24px;
+    height: 100%;
+}
+
+/* 時計カード */
+.clock-card {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.date-display {
+    font-size: 2.2rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+}
+
+.time-display {
+    font-size: 7.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+/* ニュースカード */
+.news-card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-around;
+}
+
+.news-item {
+    display: flex;
+    align-items: baseline;
+    font-size: 1.15rem;
+    line-height: 1.5;
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+}
+
+.news-item:last-child {
+    border-bottom: none;
+}
+
+.news-date {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-right: 12px;
+    flex-shrink: 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+.news-genre {
+    color: var(--color-accent);
+    font-weight: 700;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.news-title {
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    flex-grow: 1;
+    word-break: break-all;
+}
+
+.news-source {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.loading-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    border: none;
+    justify-content: center;
+}
+
+/* 右側パネル (天気情報) */
+.weather-card {
+    padding: 32px;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 24px;
+    overflow: hidden;
+}
+
+/* 今日の天気 */
+.today-weather {
+    display: flex;
+    flex-direction: column;
+}
+
+.today-weather-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.weather-date {
+    font-size: 2.2rem;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+}
+
+.weather-icon-main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.weather-icon-main i {
+    font-size: 4rem;
+}
+
+/* 天気別アイコン色 */
+.sunny-color { color: #f59e0b; }
+.cloudy-color { color: #cbd5e1; }
+.rainy-color { color: #60a5fa; }
+.snowy-color { color: #93c5fd; }
+
+.temp-range {
+    display: flex;
+    gap: 24px;
+    font-size: 4.5rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+}
+
+.temp-max {
+    color: var(--color-temp-max);
+}
+
+.temp-min {
+    color: var(--color-temp-min);
+}
+
+.current-conditions {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.weather-advice {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 16px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* タブ切り替え */
+.forecast-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: var(--glass-bg-active);
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.forecast-content {
+    position: relative;
+    overflow-y: auto;
+    /* スクロールバー非表示 */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.forecast-content::-webkit-scrollbar {
+    display: none;
+}
+
+.forecast-panel {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.forecast-panel.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* 予報行のスタイル（3日予報 / 8時間ごと） */
+.forecast-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.forecast-row:last-child {
+    border-bottom: none;
+}
+
+.forecast-row-date {
+    font-family: 'Outfit', sans-serif;
+}
+
+.forecast-row-icon {
+    display: flex;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+.forecast-row-max {
+    color: var(--color-temp-max);
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+}
+
+.forecast-row-min {
+    color: var(--color-temp-min);
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+}
+
+.forecast-row-pop {
+    color: var(--color-pop);
+    text-align: right;
+    font-size: 1.4rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+/* 8時間ごと特有 */
+.hourly-row {
+    grid-template-columns: 1.5fr 1fr 1.2fr 1.2fr 1fr;
+}
+.hourly-time {
+    font-family: 'Outfit', sans-serif;
+}
+.hourly-temp {
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+}
+.hourly-humidity {
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+.forecast-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   2. エアコン操作画面のレイアウト (Aircon Screen)
+   ========================================================================== */
+.back-button {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.back-button:hover {
+    background: var(--glass-bg-active);
+}
+
+.aircon-layout {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding-top: 60px; /* 戻るボタンとの干渉防止 */
+    padding-bottom: 24px;
+}
+
+/* 設定温度表示 */
+.aircon-temp-display-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+}
+
+.temp-label {
+    font-size: 1.4rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+}
+
+.temp-value-container {
+    display: flex;
+    align-items: baseline;
+    line-height: 1;
+}
+
+.temp-val {
+    font-size: 9rem;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.05em;
+}
+
+.temp-unit {
+    font-size: 3rem;
+    font-weight: 500;
+    margin-left: 8px;
+    color: var(--text-secondary);
+}
+
+.aircon-status-sub {
+    margin-top: 12px;
+    font-size: 1.4rem;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.aircon-status-sub.on {
+    color: #4ade80; /* 緑 */
+    border-color: rgba(74, 222, 128, 0.2);
+}
+
+/* コントロールボタン群 */
+.aircon-control-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.control-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-lg);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    height: 160px;
+}
+
+.control-btn:hover {
+    background: var(--glass-bg-active);
+    transform: translateY(-2px);
+}
+
+.control-btn:active {
+    transform: translateY(1px);
+}
+
+.btn-icon {
+    font-size: 2.2rem;
+    margin-bottom: 12px;
+    transition: transform var(--transition-speed);
+}
+
+.btn-label {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.btn-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+/* 電源ボタン特有 */
+.power-btn.active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 25px rgba(239, 68, 68, 0.25);
+}
+.power-btn.active .btn-icon {
+    color: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+/* セレクトボタンのラッパー */
+.select-btn-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.select-btn-wrapper .control-btn {
+    width: 100%;
+}
+
+/* ポップアップオプションメニュー */
+.options-popup {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--border-radius-md);
+    width: 200px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+}
+
+.options-popup.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.popup-header {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.option-item {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.option-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.option-item.selected {
+    background: var(--color-accent);
+    color: #000;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   3. 画面焼け防止スクリーンセーバー (Screensaver)
+   ========================================================================== */
+.screensaver-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000000; /* 完全な黒 (OLEDでのピクセル消灯用) */
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease-in-out;
+}
+
+.screensaver-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.screensaver-clock-container {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+    transition: all 1s ease-in-out, opacity 1s ease-in-out;
+    opacity: 0;
+}
+
+.screensaver-clock-container.visible {
+    opacity: 1;
+}
+
+.ss-date {
+    font-size: 2.2rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.15); /* 非常に暗い文字 (焼き付き防止・まぶしさ防止) */
+    margin-bottom: 4px;
+}
+
+.ss-time {
+    font-size: 8rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.15); /* 非常に暗い文字 */
+    line-height: 1;
+    font-family: 'Outfit', sans-serif;
+}
+
+.ss-hint {
+    margin-top: 12px;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.05); /* ほとんど見えないヒント */
+    font-weight: 400;
+}
+
+/* ==========================================================================
+   共通バックドロップ & ローディング & トースト
+   ========================================================================== */
+.popup-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-speed);
+}
+
+.popup-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255, 255, 255, 0.1);
+    border-top: 6px solid var(--color-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.toast {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+    padding: 12px 32px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 10001;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   アニメーション定義
+   ========================================================================== */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* レスポンシブ対応 (アスペクト比やサイズ調整) */
+@media (max-width: 1024px) {
+    .date-display { font-size: 1.8rem; }
+    .time-display { font-size: 5.5rem; }
+    .weather-date { font-size: 1.8rem; }
+    .temp-range { font-size: 3.5rem; }
+    .aircon-control-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+    .control-btn { height: 140px; }
+}
+
+@media (max-width: 768px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1.2fr;
+        overflow-y: auto;
+    }
+    .panel-left {
+        height: auto;
+    }
+    .clock-card {
+        align-items: center;
+        padding: 20px;
+    }
+    .aircon-control-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ==========================================================================
+   0. ログイン画面 (Login Screen)
+   ========================================================================== */
+.login-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.login-icon {
+    font-size: 3rem;
+    color: var(--color-accent);
+    margin-bottom: 20px;
+    background: rgba(56, 189, 248, 0.1);
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
+#login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#login-password-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: var(--border-radius-md);
+    outline: none;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+#login-password-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.login-btn {
+    background: var(--color-accent);
+    color: #0f172a;
+    border: none;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-btn:hover {
+    background: #7dd3fc;
+    transform: translateY(-1px);
+}
+
+.login-btn:active {
+    transform: translateY(1px);
+}
+
+.login-error-text {
+    margin-top: 16px;
+    color: var(--color-temp-max);
+    font-weight: 500;
+    font-size: 0.95rem;
+    min-height: 20px;
+}
+
+/* ==========================================================================
+   4. 初期セットアップ画面 (Setup Screen)
+   ========================================================================== */
+#setup-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a, #1e1b4b);
+}
+
+.setup-container {
+    max-width: 600px;
+    width: 90%;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.setup-container h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--color-accent);
+}
+
+.setup-container p {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.setup-desc {
+    margin-bottom: 5px;
+}
+
+.template-box {
+    position: relative;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.template-box pre {
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.btn-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.drop-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: var(--border-radius-md);
+    padding: 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.01);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.drop-zone.dragover {
+    border-color: var(--color-accent);
+    background: rgba(56, 189, 248, 0.05);
+}
+
+.drop-icon {
+    font-size: 2.5rem;
+    color: var(--color-accent);
+    opacity: 0.8;
+}
+
+.drop-zone p {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.drop-zone span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.btn-select {
+    background: var(--color-accent);
+    border: none;
+    color: #000;
+    padding: 8px 20px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-select:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* 設定ボタン（待機画面など用） */
+.settings-trigger-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.settings-trigger-btn:hover {
+    color: var(--text-primary);
+    background: var(--glass-bg-active);
+    transform: rotate(30deg);
+}
+
+/* 設定モーダルのスタイル */
+.settings-modal {
+    width: 280px;
+}
+
+.settings-modal-content {
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-modal-content p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.btn-danger {
+    background: #ef4444;
+    border: none;
+    color: #fff;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
