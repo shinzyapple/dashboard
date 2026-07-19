@@ -13,7 +13,7 @@ const AIRCON_RETURN_TIMEOUT = 60000;  // エアコン画面で1分間無操作�
 // 状態管理
 // ==========================================
 let state = {
-    currentScreen: 'standby',
+    currentScreen: null,
     weatherData: null,
     newsData: null,
     aircon: {
